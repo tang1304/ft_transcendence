@@ -13,7 +13,8 @@ https://docs.djangoproject.com/en/3.2/ref/settings/
 from pathlib import Path
 import environ
 
-env = environ.Env
+env = environ.Env()
+environ.Env.read_env()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -23,7 +24,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/3.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-dv*=y@^jm3dk147dm97v9dnvzpw8fp3w6b)w3!%xwi(bzg0p1a'
+SECRET_KEY = env('SECRET_KEY')#'django-insecure-dv*=y@^jm3dk147dm97v9dnvzpw8fp3w6b)w3!%xwi(bzg0p1a'
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -48,8 +49,8 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.common.CommonMiddleware',
     'corsheaders.middleware.CorsMiddleware',
+    'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
@@ -83,11 +84,11 @@ WSGI_APPLICATION = 'auth.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': env("DB_NAME"),
-		'USER' : env("DB_USER"),
-		'PASSWORD' : env("DB_PASS"),
-		'HOST' : env("DB_HOST"), # Change localhost
-		'PORT' : env("DB_PORT"),
+        'NAME': env('DB_NAME'),
+		'USER' : env('DB_USER'),
+		'PASSWORD' : env('DB_PASS'),
+		'HOST' : env('DB_HOST'), # Change localhost
+		'PORT' : env('DB_PORT'),
     }
 }
 
