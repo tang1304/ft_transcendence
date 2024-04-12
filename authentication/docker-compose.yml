@@ -2,6 +2,7 @@ version: '3.8'
 
 services:
   web:
+    container_name: auth
     build: .
     command: python /app/manage.py runserver 0.0.0.0:8000
     volumes:
@@ -10,13 +11,30 @@ services:
       - 8000:8000
     depends_on:
       - db
+    expose: 
+      - "8000"
+    networks:
+      - auth
+      - data
 
   db:
     image: postgres
+    container_name: postgresql
     environment:
+      POSTGRES_USER: root
       POSTGRES_PASSWORD: SuperPassword
+      POSTGRES_DB: transcendence_users
     volumes:
       - postgres_data:/var/lib/postgresql/data/
+    networks:
+      - data
 
 volumes:
   postgres_data:
+
+
+networks:
+  auth:
+    driver: bridge
+  data:
+    internal: true

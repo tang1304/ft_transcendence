@@ -87,8 +87,8 @@ DATABASES = {
         'NAME': env('DB_NAME'),
 		'USER' : env('DB_USER'),
 		'PASSWORD' : env('DB_PASS'),
-		'HOST' : env('DB_HOST'), # Change localhost
-		'PORT' : env('DB_PORT'),
+		'HOST' : env('DB_PORT'), # Change localhost
+		'PORT' : '5432',
     }
 }
 

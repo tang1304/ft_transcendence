@@ -5,7 +5,7 @@ ENV PYTHONBUFFERED 1
 
 WORKDIR /app
 
-COPY ./requirement.txt .
+COPY ./requirements.txt .
 
 RUN pip install -r requirements.txt
 
