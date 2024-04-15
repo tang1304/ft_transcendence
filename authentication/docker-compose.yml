@@ -21,7 +21,7 @@ services:
     image: postgres
     container_name: postgresql
     environment:
-      POSTGRES_USER: root
+      POSTGRES_USER: postgres
       POSTGRES_PASSWORD: SuperPassword
       POSTGRES_DB: transcendence_users
     volumes:
