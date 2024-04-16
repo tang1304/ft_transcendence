@@ -29,7 +29,7 @@ SECRET_KEY = env('SECRET_KEY')#'django-insecure-dv*=y@^jm3dk147dm97v9dnvzpw8fp3w
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['127.0.0.1 localhost [::1]']
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '[::1]']
 
 
 # Application definition
@@ -87,7 +87,7 @@ DATABASES = {
         'NAME': env('DB_NAME'),
 		'USER' : env('DB_USER'),
 		'PASSWORD' : env('DB_PASS'),
-		'HOST' : 'postgresql', # Change localhost
+		'HOST' : env('DB_HOST'),
 		'PORT' : env('DB_PORT'),
     }
 }
