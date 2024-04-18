@@ -8,7 +8,7 @@ services:
     volumes:
       - .:/app
     ports:
-      - 8000:8000
+      - "8000:8000"
     env_file:
       - ./.env
     depends_on:
@@ -16,12 +16,12 @@ services:
     expose: 
       - "8000"
     networks:
-      - auth
+#      - auth
       - data
 
   db:
     image: postgres
-    container_name: postgresql
+    container_name: postgresDB
     env_file:
       - ./.env
     environment:
@@ -30,6 +30,10 @@ services:
       POSTGRES_DB: transcendence_users
     volumes:
       - postgres_data:/var/lib/postgresql/data/
+    ports:
+      - "5432:5432"
+    expose: #to see db in pycharm, need to delete
+      - "5432"
     networks:
       - data
 
@@ -41,4 +45,4 @@ networks:
   auth:
     driver: bridge
   data:
-    internal: true
+#    internal: true

@@ -24,7 +24,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.environ.get('SECRET_KEY')#'django-insecure-dv*=y@^jm3dk147dm97v9dnvzpw8fp3w6b)w3!%xwi(bzg0p1a'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get('DEBUG')
 
 ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '[::1]']
 
@@ -135,5 +135,9 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 AUTH_USER_MODEL = 'users.User'
 
-CORS_ORIGIN_ALLOW_ALL = True
-CORS_ALLOW_CREDENTIALS = True
+CORS_ORIGIN_ALLOW_ALL = True  # allow all frontend ports to access app
+CORS_ALLOW_CREDENTIALS = True  # for frontend to get the jwt cookies
+
+REST_FRAMEWORK = {
+    
+}
