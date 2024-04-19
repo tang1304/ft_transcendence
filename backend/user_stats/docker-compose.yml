@@ -1,0 +1,45 @@
+services:
+  user-stats-web:
+    container_name: user-stats-web
+    build:
+      context: .
+      dockerfile: docker/django/Dockerfile
+#    ports:
+#      - "8000:8000"
+    expose:
+      - 8000
+    env_file:
+      - .env
+    depends_on:
+      - user-stats-db
+    volumes:
+      - static_volume:/home/app/web/staticfiles
+  user-stats-db:
+    container_name: user-stats-db
+    build:
+      context: .
+      dockerfile: docker/postgres/Dockerfile
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    env_file:
+      - .env
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB_USER_STATS=${POSTGRES_DB_USER_STATS}
+    ports:
+      - "${SQL_PORT}:5432"
+  user-stats-nginx:
+    container_name: user-stats-nginx
+    build:
+      context: .
+      dockerfile: docker/nginx/Dockerfile
+    ports:
+        - "1234:80"
+    depends_on:
+      - user-stats-web
+    volumes:
+      - static_volume:/home/app/web/staticfiles
+volumes:
+    postgres_data:
+    static_volume:
