@@ -1,22 +1,26 @@
 from rest_framework import serializers
 from .models import User
+from .models import Friendship
 
 
 class UserSerializer(serializers.ModelSerializer):
 	class Meta:
 		model = User
-		fields = ['id', 'username', 'email', 'password']
+		fields = ['id', 'username', 'email', 'password', 'profile_picture']
 		extra_kwargs = {
 			'password': {'write_only': True}
 		}
 
 	def create(self, validated_data):
 		password = validated_data.pop('password', None)
-		image = validated_data.pop('image', None)
 		instance = self.Meta.model(**validated_data)
 		if password is not None:
 			instance.set_password(password)
-		if image is not None:
-			instance.image = image
 		instance.save()
 		return instance
+
+
+class FriendSerializer(serializers.ModelSerializer):
+	class Meta:
+		model = Friendship
+		fields = ['id', 'sender', 'receiver', 'status', 'created_at']
