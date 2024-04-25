@@ -1,6 +1,3 @@
-from tkinter import Image
-
-from mercurial.scmutil import status
 from rest_framework.views import APIView
 from rest_framework.views import status
 from rest_framework.response import Response
@@ -15,6 +12,7 @@ from rest_framework.parsers import MultiPartParser, FormParser
 from PIL import Image
 from io import BytesIO
 from django.core.files.uploadedfile import InMemoryUploadedFile
+
 # Create your views here.
 
 

@@ -14,5 +14,7 @@ python manage.py makemigrations
 python manage.py migrate
 python manage.py collectstatic --no-input --clear
 python manage.py createsuperuser --noinput
-
-exec "gunicorn" "user_management.wsgi:application" "--bind" "0.0.0.0:8000"
+ls
+cd user_management
+ls
+exec "gunicorn" "user_management.wsgi.application" "--bind" "0.0.0.0:8000"

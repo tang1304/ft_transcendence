@@ -12,6 +12,7 @@ services:
       - user-management-db
     volumes:
       - static_volume:/home/app/web/staticfiles
+
   user-management-db:
     container_name: user-management-db
     build:
@@ -24,9 +25,10 @@ services:
     environment:
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_DB=${POSTGRES_DB_USER_MANAGEMENT}
+      - POSTGRES_DB=${POSTGRES_DB_NAME}
     ports:
       - "${SQL_PORT}:5432"
+
   user-management-nginx:
     container_name: user-management-nginx
     build:
