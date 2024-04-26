@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import User
+from .models import Friendship
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -17,3 +18,9 @@ class UserSerializer(serializers.ModelSerializer):
 			instance.set_password(password)
 		instance.save()
 		return instance
+
+
+class FriendSerializer(serializers.ModelSerializer):
+	class Meta:
+		model = Friendship
+		fields = ['id', 'sender', 'receiver', 'status', 'created_at']
