@@ -14,7 +14,7 @@ services:
       - static_volume:/home/app/web/staticfiles
 
   user-management-db:
-    container_name: user-management-db
+    container_name: user_management_db
     build:
       context: .
       dockerfile: docker/postgres/Dockerfile
@@ -29,17 +29,17 @@ services:
     ports:
       - "${SQL_PORT}:5432"
 
-  user-management-nginx:
-    container_name: user-management-nginx
-    build:
-      context: .
-      dockerfile: docker/nginx/Dockerfile
-    ports:
-        - "1234:80"
-    depends_on:
-      - user-management-web
-    volumes:
-      - static_volume:/home/app/web/staticfiles
+#  user-management-nginx:
+#    container_name: user-management-nginx
+#    build:
+#      context: .
+#      dockerfile: docker/nginx/Dockerfile
+#    ports:
+#        - "1234:80"
+#    depends_on:
+#      - user-management-web
+#    volumes:
+#      - static_volume:/home/app/web/staticfiles
 
 volumes:
     postgres_data:

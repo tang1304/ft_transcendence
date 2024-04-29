@@ -1,29 +1,36 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
-from django.utils.translation import gettext_lazy as _
+from django.core.validators import MinLengthValidator
+from .manager import UserManager
+import jwt
+from PIL import Image
 
 # Create your models here.
 
-
 class User(AbstractUser):
-    username = models.CharField(max_length=100, unique=True)
-    password = models.CharField(max_length=100)
-    email = models.EmailField(_('email address'), max_length=100, unique=True)
-    image = models.ImageField(upload_to='profile_pics/', default='default_pp.jpg')
+    username = models.CharField(unique=True, max_length=100)
+    email = models.EmailField(unique=True, max_length=100)
+    password = models.CharField(max_length=100, validators=[MinLengthValidator(5)])
+    image = models.ImageField(default='default_pp.jpg', upload_to='profile_pics')
+    friends = models.ManyToManyField("self", blank=True)
 
-    REQUIRED_FIELDS = []
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        img = Image.open(self.image.path)
+        if img.height > 200 or img.width > 200:
+            new_img = (200, 200)
+            img.thumbnail(new_img)
+            img.save(self.image.path)
 
+    REQUIRED_FIELDS = ['email']
 
-class Friendship(models.Model):
-    sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_friend_request')
-    receiver = models.ForeignKey(User, on_delete=models.CASCADE, related_name='received_friend_request')
-    status_choices = [
-        ('pending', 'Pending'),
-        ('accepted', 'Accepted'),
-        ('declined', 'Declined'),
-    ]
-    status = models.CharField(max_length=10, choices=status_choices)
-    created_at = models.DateTimeField(auto_now_add=True)
+    objects = UserManager()
 
-    class Meta:
-        unique_together = ['sender', 'receiver']
+    def __str__(self):
+        return self.email
+
+    def get_username(self):
+        return self.username
+
+    def tokens(self):
+        pass

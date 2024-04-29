@@ -4,6 +4,7 @@ ENV HOME=/home/app
 ENV APP_HOME=/home/app/web
 RUN mkdir -p $APP_HOME
 RUN mkdir $APP_HOME/staticfiles
+RUN mkdir $APP_HOME/media
 WORKDIR $APP_HOME
 
 ENV PYTHONDONTWRITEBYTECODE 1
@@ -17,6 +18,7 @@ RUN pip install -r requirements.txt
 COPY ./app .
 
 COPY ./docker/django/entrypoint.sh .
+COPY ./app/user_management/static/default_pp.jpg /home/app/web/media/default_pp.jpg
 RUN chmod +x entrypoint.sh
 ENTRYPOINT ["bash" , "entrypoint.sh"]
 
