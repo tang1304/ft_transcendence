@@ -4,6 +4,9 @@ services:
     build:
       context: .
       dockerfile: docker/django/Dockerfile
+    command: python /home/app/web/manage.py runserver 0.0.0.0:8000
+    ports:
+      - "8000:8000"
     expose:
       - 8000
     env_file:

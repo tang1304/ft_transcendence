@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import MinLengthValidator
+from rest_framework_simplejwt.tokens import RefreshToken
 from .manager import UserManager
 import jwt
 from PIL import Image
@@ -32,5 +33,9 @@ class User(AbstractUser):
     def get_username(self):
         return self.username
 
-    def tokens(self):
-        pass
+    def token(self):
+        refresh = RefreshToken.for_user(self)
+        return {
+            "refresh": str(refresh),
+            "access": str(refresh.access_token)
+        }

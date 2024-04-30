@@ -20,6 +20,7 @@ COPY ./app .
 COPY ./docker/django/entrypoint.sh .
 COPY ./app/user_management/static/default_pp.jpg /home/app/web/media/default_pp.jpg
 RUN chmod +x entrypoint.sh
+
 ENTRYPOINT ["bash" , "entrypoint.sh"]
 
 EXPOSE 8000
