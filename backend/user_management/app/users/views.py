@@ -29,6 +29,7 @@ class LoginView(APIView):
     def post (self, request):
         serializer = self.serializer_class(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
-        response = Response(serializer.validated_data)
-        response.set_cookie(key='jwt', value=serializer.validated_data['token'], httponly=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        token = serializer.validated_data['token']
+        response = Response({"token": token})
+        response.set_cookie(key='jwt', value=token, httponly=True)
+        return response

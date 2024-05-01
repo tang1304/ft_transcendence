@@ -37,7 +37,7 @@ class LoginSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['username', 'password', 'token']
+        fields = ['username', 'password']
         extra_kwargs = {
             'password': {'write_only': True}
         }
@@ -60,6 +60,5 @@ class LoginSerializer(serializers.ModelSerializer):
         token = jwt.encode(payload, secret, algorithm='HS256')
 
         return {
-            'username': user.get_username(),
             'token': token
         }

@@ -3,7 +3,6 @@ from django.contrib.auth.models import AbstractUser
 from django.core.validators import MinLengthValidator
 from rest_framework_simplejwt.tokens import RefreshToken
 from .manager import UserManager
-import jwt
 from PIL import Image
 
 # Create your models here.
