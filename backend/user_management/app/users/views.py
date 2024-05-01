@@ -1,8 +1,9 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import render
-from .serializer import RegisterSerializer, LoginSerializer
+from .serializer import RegisterSerializer, LoginSerializer, LogoutSerializer#, PasswordResetSerializer
 
 
 # Create your views here.
@@ -33,3 +34,21 @@ class LoginView(APIView):
         response = Response({"token": token})
         response.set_cookie(key='jwt', value=token, httponly=True)
         return response
+
+
+class LogoutView(APIView):
+    serializer_class = LogoutSerializer
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+# class PasswordResetView(APIView):
+#     serializer_class = PasswordResetSerializer
+#     def post(self, request):
+#         serializer = self.serializer_class(data=request.data, context={'request': request})
+#         serializer.is_valid(raise_exception=True)

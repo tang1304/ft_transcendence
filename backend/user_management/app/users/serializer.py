@@ -1,7 +1,11 @@
 from .models import User
 from rest_framework import serializers
 from django.contrib.auth import authenticate
+from django.contrib.auth.tokens import PasswordResetTokenGenerator
+from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
+from django.utils.encoding import smart_str, force_str, smart_bytes
 from rest_framework.exceptions import AuthenticationFailed
+from rest_framework_simplejwt.tokens import RefreshToken, TokenError
 import jwt
 import os
 from datetime import datetime, timedelta, timezone
@@ -62,3 +66,35 @@ class LoginSerializer(serializers.ModelSerializer):
         return {
             'token': token
         }
+
+
+class LogoutSerializer(serializers.Serializer):
+    refresh_token = serializers.CharField()
+
+    default_error_message = {
+        'bad_token': ('Token is expired or invalid')
+    }
+
+    def validate(self, attrs):
+        self.token = attrs.get('refresh_token')
+
+        return attrs
+
+    def save(self, **kwargs):
+        try:
+            token = RefreshToken(self.token)
+            token.blacklist()
+        except TokenError:
+            return self.fail('bad_token')
+
+
+# class PasswordResetSerializer(serializers.Serializer):
+#     email = serializers.EmailField(max_length=100)
+#     class Meta:
+#         model = User
+#         fields = ['email']
+#
+#     def validate(self, attrs):
+#         email = attrs.get('email')
+#         if User.objects.filter(email=email).exists():
+#             user = User.objects.get(email=email)
