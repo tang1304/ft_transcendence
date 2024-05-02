@@ -38,3 +38,17 @@ class User(AbstractUser):
             "refresh": str(refresh),
             "access": str(refresh.access_token)
         }
+
+
+class FriendRequest(models.Model):
+    from_user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='from_user')
+    to_user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='to_user')
+    status_choices = [
+        ('pending', 'Pending'),
+        ('accepted', 'Accepted'),
+        ('declined', 'Declined'),
+    ]
+    status = models.CharField(max_length=20, choices=status_choices, default="pending")
+
+    class Meta:
+        unique_together = ['from_user', 'to_user']
