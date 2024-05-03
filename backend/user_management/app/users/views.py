@@ -9,6 +9,7 @@ from .serializer import RegisterSerializer, LoginSerializer, LogoutSerializer#, 
 from .models import User, FriendRequest
 import os
 import logging  # for debug
+
 # Create your views here.
 
 class RegisterView(APIView):
@@ -80,7 +81,9 @@ class SendFriendRequestView(APIView):
                             status=status.HTTP_400_BAD_REQUEST)
 
         FriendRequest.objects.create(from_user=from_user, to_user=to_user)
-        return Response({'detail': 'Friend request sent.'}, status=status.HTTP_201_CREATED)
+        return Response({
+            'detail': 'Friend request sent.'
+        }, status=status.HTTP_201_CREATED)
 
 
 class AcceptFriendRequestView(APIView):
@@ -88,6 +91,9 @@ class AcceptFriendRequestView(APIView):
         token = request.COOKIES.get('jwt')
         if not token:
             raise AuthenticationFailed('Unauthenticated')
+        secret = os.environ.get('SECRET_KEY')
+        payload = jwt.decode(token, secret, algorithms='HS256')
+
         friend_request_id = request.data.get('friend_request_id')
         friend_request = FriendRequest.objects.get(pk=friend_request_id)
 
