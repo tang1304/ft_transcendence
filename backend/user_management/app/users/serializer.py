@@ -88,6 +88,13 @@ class LogoutSerializer(serializers.Serializer):
             return self.fail('bad_token')
 
 
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['username', 'first_name', 'last_name']
+
+
+
 # class PasswordResetSerializer(serializers.Serializer):
 #     email = serializers.EmailField(max_length=100)
 #     class Meta:

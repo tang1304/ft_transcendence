@@ -5,7 +5,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework import status
 from django.shortcuts import render
-from .serializer import RegisterSerializer, LoginSerializer, LogoutSerializer#, PasswordResetSerializer
+from .serializer import RegisterSerializer, LoginSerializer, LogoutSerializer, UserSerializer#, PasswordResetSerializer
 from .models import User, FriendRequest
 import os
 import logging  # for debug
@@ -51,6 +51,23 @@ class LogoutView(APIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
+class UpdateUserView(APIView):
+    def put(self, request):
+        token = request.COOKIES.get('jwt')
+        if not token:
+            raise AuthenticationFailed('Unauthenticated')
+        secret = os.environ.get('SECRET_KEY')
+        payload = jwt.decode(token, secret, algorithms='HS256')
+
+        user = User.objects.get(id=payload['id'])
+
+        serializer = UserSerializer(user, data=request.data)
+        if serializer.is_valid(raise_exception=True):
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
 # class PasswordResetView(APIView):
 #     serializer_class = PasswordResetSerializer
 #     def post(self, request):
@@ -66,24 +83,29 @@ class SendFriendRequestView(APIView):
         payload = jwt.decode(token, secret, algorithms='HS256')
 
         from_user = User.objects.get(id=payload.get('id'))
-        to_user_id = request.data.get('to_user_id')
+        to_user_id = request.data.get('to_id')
 
         try:
             to_user = User.objects.get(pk=to_user_id)
         except User.DoesNotExist:
             return Response({'detail': 'User does not exist.'}, status=status.HTTP_404_NOT_FOUND)
 
-        if FriendRequest.objects.filter(from_user=from_user, to_user=to_user).exists():
-            return Response({'detail': 'Friend request already sent.'}, status=status.HTTP_400_BAD_REQUEST)
-
         if from_user == to_user:
             return Response({'detail': 'You cannot send a friend request to yourself.'},
                             status=status.HTTP_400_BAD_REQUEST)
 
+        if from_user.friends.filter(id=to_user_id).exists():
+            return Response({'detail': 'This user is already your friend.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if FriendRequest.objects.filter(from_user=from_user, to_user=to_user).exists():
+            return Response({'detail': 'Friend request already sent.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if FriendRequest.objects.filter(from_user=to_user, to_user=from_user, status='pending').exists():
+            return Response({'detail': 'You have a pending request from this user.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
         FriendRequest.objects.create(from_user=from_user, to_user=to_user)
-        return Response({
-            'detail': 'Friend request sent.'
-        }, status=status.HTTP_201_CREATED)
+        return Response({'detail': 'Friend request sent.'}, status=status.HTTP_201_CREATED)
 
 
 class AcceptFriendRequestView(APIView):
@@ -95,7 +117,7 @@ class AcceptFriendRequestView(APIView):
         payload = jwt.decode(token, secret, algorithms='HS256')
         user_id = User.objects.get(id=payload.get('id'))
 
-        friend_request_user_id = request.data.get('from_user_id')
+        friend_request_user_id = request.data.get('from_id')
         try:
             friend_request = FriendRequest.objects.get(from_user_id=friend_request_user_id, to_user_id=user_id)
         except FriendRequest.DoesNotExist:
@@ -104,30 +126,33 @@ class AcceptFriendRequestView(APIView):
         if friend_request.to_user != user_id:
             return Response({'detail': 'You cannot accept this friend request.'}, status=status.HTTP_403_FORBIDDEN)
 
+        if FriendRequest.objects.filter(from_user_id=friend_request_user_id, to_user_id=user_id,
+                                        status='accepted').exists():
+            return Response({'detail': 'You already accepted this friend request.'}, status=status.HTTP_403_FORBIDDEN)
+
         friend_request.status = 'accepted'
         friend_request.save()
 
         friend_request.to_user.friends.add(friend_request.from_user)
         friend_request.from_user.friends.add(friend_request.to_user)
-        # request.user.friends.add(friend_request.from_user)
 
         return Response({'detail': 'Friend request accepted.'}, status=status.HTTP_200_OK)
 
-
-class DeclineFriendRequestView(APIView):
-    def post(self, request):
-        token = request.COOKIES.get('jwt')
-        if not token:
-            raise AuthenticationFailed('Unauthenticated')
-        friend_request_id = request.data.get('friend_request_id')
-        try:
-            friend_request = FriendRequest.objects.get(pk=friend_request_id)
-        except FriendRequest.DoesNotExist:
-            return Response({'detail': 'Friend request does not exist.'}, status=status.HTTP_404_NOT_FOUND)
-
-        if friend_request.to_user != request.user:
-            return Response({'detail': 'You cannot decline this friend request.'}, status=status.HTTP_403_FORBIDDEN)
-
-        friend_request.delete()
-
-        return Response({'detail': 'Friend request declined.'}, status=status.HTTP_200_OK)
+# TODO: If necessary, otherwise we stay with pending requests
+# class DeclineFriendRequestView(APIView):
+#     def post(self, request):
+#         token = request.COOKIES.get('jwt')
+#         if not token:
+#             raise AuthenticationFailed('Unauthenticated')
+#         friend_request_id = request.data.get('friend_request_id')
+#         try:
+#             friend_request = FriendRequest.objects.get(pk=friend_request_id)
+#         except FriendRequest.DoesNotExist:
+#             return Response({'detail': 'Friend request does not exist.'}, status=status.HTTP_404_NOT_FOUND)
+#
+#         if friend_request.to_user != request.user:
+#             return Response({'detail': 'You cannot decline this friend request.'}, status=status.HTTP_403_FORBIDDEN)
+#
+#         friend_request.delete()
+#
+#         return Response({'detail': 'Friend request declined.'}, status=status.HTTP_200_OK)
