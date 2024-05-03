@@ -93,18 +93,23 @@ class AcceptFriendRequestView(APIView):
             raise AuthenticationFailed('Unauthenticated')
         secret = os.environ.get('SECRET_KEY')
         payload = jwt.decode(token, secret, algorithms='HS256')
+        user_id = User.objects.get(id=payload.get('id'))
 
-        friend_request_id = request.data.get('friend_request_id')
-        friend_request = FriendRequest.objects.get(pk=friend_request_id)
+        friend_request_user_id = request.data.get('from_user_id')
+        try:
+            friend_request = FriendRequest.objects.get(from_user_id=friend_request_user_id, to_user_id=user_id)
+        except FriendRequest.DoesNotExist:
+            return Response({'detail': 'Friend request does not exist.'}, status=status.HTTP_404_NOT_FOUND)
 
-        if friend_request.to_user != request.user:
+        if friend_request.to_user != user_id:
             return Response({'detail': 'You cannot accept this friend request.'}, status=status.HTTP_403_FORBIDDEN)
 
-        friend_request.accepted = True
+        friend_request.status = 'accepted'
         friend_request.save()
 
-        friend_request.from_user.friends.add(request.user)
-        request.user.friends.add(friend_request.from_user)
+        friend_request.to_user.friends.add(friend_request.from_user)
+        friend_request.from_user.friends.add(friend_request.to_user)
+        # request.user.friends.add(friend_request.from_user)
 
         return Response({'detail': 'Friend request accepted.'}, status=status.HTTP_200_OK)
 
