@@ -92,10 +92,10 @@ class LogoutSerializer(serializers.Serializer):
 
 class UserSerializer(serializers.ModelSerializer):
     image = serializers.ImageField(max_length=255, allow_empty_file=False, use_url=True)
+
     class Meta:
         model = User
         fields = ['username', 'first_name', 'last_name', 'image']
-
 
 
 # class PasswordResetSerializer(serializers.Serializer):

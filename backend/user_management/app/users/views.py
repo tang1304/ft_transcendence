@@ -156,3 +156,38 @@ class AcceptFriendRequestView(APIView):
 #         friend_request.delete()
 #
 #         return Response({'detail': 'Friend request declined.'}, status=status.HTTP_200_OK)
+
+
+class DeleteFriendView(APIView):
+    def post(self, request):
+        token = request.COOKIES.get('jwt')
+        if not token:
+            raise AuthenticationFailed('Unauthenticated')
+        secret = os.environ.get('SECRET_KEY')
+        payload = jwt.decode(token, secret, algorithms='HS256')
+        user = User.objects.get(id=payload.get('id'))
+        friend_id = request.data.get('to_id')
+
+        try:
+            friend = User.objects.get(id=friend_id)
+        except User.DoesNotExist:
+            return Response({'detail': 'Friend does not exist.'}, status=status.HTTP_404_NOT_FOUND)
+
+        if friend in user.friends.all():
+            user.friends.remove(friend)
+            friend.friends.remove(user)
+
+            try:
+                friend_request = FriendRequest.objects.get(from_user_id=friend_id, to_user_id=user)
+                friend_request.delete()
+            except FriendRequest.DoesNotExist:
+                pass
+            try:
+                friend_request = FriendRequest.objects.get(from_user_id=user, to_user_id=friend_id)
+                friend_request.delete()
+            except FriendRequest.DoesNotExist:
+                pass
+
+            return Response({'detail': 'Friend removed.'}, status=status.HTTP_200_OK)
+
+        return Response({'detail': 'User is not in you friends.'}, status=status.HTTP_400_BAD_REQUEST)
