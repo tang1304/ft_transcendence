@@ -13,6 +13,11 @@ class User(AbstractUser):
     password = models.CharField(max_length=100, validators=[MinLengthValidator(5)])
     image = models.ImageField(default='default_pp.jpg', upload_to='profile_pics')
     friends = models.ManyToManyField("self", blank=True)
+    status_choices = [
+        ('online', 'Online'),
+        ('offline', 'Offline'),
+    ]
+    status = models.CharField(max_length=50, choices=status_choices, default='offline')
 
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)

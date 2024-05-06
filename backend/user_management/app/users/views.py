@@ -5,7 +5,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework import status
 from django.shortcuts import render
-from .serializer import RegisterSerializer, LoginSerializer, LogoutSerializer, UserSerializer#, PasswordResetSerializer
+from .serializer import RegisterSerializer, LoginSerializer, UserSerializer#, PasswordResetSerializer
 from .models import User, FriendRequest
 import os
 import logging  # for debug
@@ -35,20 +35,31 @@ class LoginView(APIView):
         serializer = self.serializer_class(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
         token = serializer.validated_data['token']
+        user = serializer.validated_data['user']
+
+        user.status = 'online'
+        user.save()
+
         response = Response({"token": token})
         response.set_cookie(key='jwt', value=token, httponly=True)
         return response
 
 
 class LogoutView(APIView):
-    serializer_class = LogoutSerializer
-    permission_classes = [IsAuthenticated]
-
     def post(self, request):
-        serializer = self.serializer_class(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        token = request.COOKIES.get('jwt')
+        if not token:
+            raise AuthenticationFailed('Unauthenticated')
+        secret = os.environ.get('SECRET_KEY')
+        payload = jwt.decode(token, secret, algorithms='HS256')
+        user = User.objects.get(id=payload['id'])
+
+        user.status = 'offline'
+        user.save()
+
+        response = Response({"detail": "Logged out successfully"})
+        response.delete_cookie('jwt')
+        return response
 
 
 class UpdateUserView(APIView):
@@ -190,4 +201,4 @@ class DeleteFriendView(APIView):
 
             return Response({'detail': 'Friend removed.'}, status=status.HTTP_200_OK)
 
-        return Response({'detail': 'User is not in you friends.'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'detail': 'User is not in your friends.'}, status=status.HTTP_400_BAD_REQUEST)
