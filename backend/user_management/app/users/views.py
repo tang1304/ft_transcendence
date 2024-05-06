@@ -61,7 +61,7 @@ class UpdateUserView(APIView):
 
         user = User.objects.get(id=payload['id'])
 
-        serializer = UserSerializer(user, data=request.data)
+        serializer = UserSerializer(user, data=request.data, partial=True)
         if serializer.is_valid(raise_exception=True):
             serializer.save()
             return Response(serializer.data)

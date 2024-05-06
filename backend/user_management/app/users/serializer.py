@@ -17,7 +17,7 @@ class RegisterSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['email', 'username', 'password', 'password2']
+        fields = ['email', 'first_name', 'last_name', 'username', 'password', 'password2']
 
     def validate(self, attrs):
         password = attrs.get('password', '')
@@ -29,6 +29,8 @@ class RegisterSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         user = User.objects.create_user(
             email=validated_data['email'],
+            first_name=validated_data.get('first_name'),
+            last_name=validated_data.get('last_name'),
             username=validated_data.get('username'),
             password=validated_data.get('password')
         )
@@ -89,9 +91,10 @@ class LogoutSerializer(serializers.Serializer):
 
 
 class UserSerializer(serializers.ModelSerializer):
+    image = serializers.ImageField(max_length=255, allow_empty_file=False, use_url=True)
     class Meta:
         model = User
-        fields = ['username', 'first_name', 'last_name']
+        fields = ['username', 'first_name', 'last_name', 'image']
 
 
 
