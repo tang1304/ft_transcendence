@@ -1,5 +1,6 @@
 from django.urls import path
-from .views import RegisterView, LoginView, LogoutView, SendFriendRequestView, AcceptFriendRequestView, UpdateUserView, DeleteFriendView#, DeclineFriendRequestView)
+from .views import (RegisterView, LoginView, LogoutView, SendFriendRequestView, AcceptFriendRequestView, UpdateUserView,
+                    DeleteFriendView, ListFriendsView)#, DeclineFriendRequestView)
 
 urlpatterns = [
     path('register', RegisterView.as_view()),
@@ -9,5 +10,6 @@ urlpatterns = [
     path('send_friend', SendFriendRequestView.as_view()),
     path('accept_friend', AcceptFriendRequestView.as_view()),
     path('delete_friend', DeleteFriendView.as_view()),
+    path('list_friends', ListFriendsView.as_view()),
     # path('decline_friend', DeclineFriendRequestView.as_view()),
 ]

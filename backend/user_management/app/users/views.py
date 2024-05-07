@@ -12,6 +12,7 @@ import logging  # for debug
 
 # Create your views here.
 
+
 class RegisterView(APIView):
     serializer_class = RegisterSerializer
     def post(self, request):
@@ -69,7 +70,6 @@ class UpdateUserView(APIView):
             raise AuthenticationFailed('Unauthenticated')
         secret = os.environ.get('SECRET_KEY')
         payload = jwt.decode(token, secret, algorithms='HS256')
-
         user = User.objects.get(id=payload['id'])
 
         serializer = UserSerializer(user, data=request.data, partial=True)
@@ -85,6 +85,7 @@ class UpdateUserView(APIView):
 #         serializer = self.serializer_class(data=request.data, context={'request': request})
 #         serializer.is_valid(raise_exception=True)
 
+
 class SendFriendRequestView(APIView):
     def post(self, request):
         token = request.COOKIES.get('jwt')
@@ -93,7 +94,7 @@ class SendFriendRequestView(APIView):
         secret = os.environ.get('SECRET_KEY')
         payload = jwt.decode(token, secret, algorithms='HS256')
 
-        from_user = User.objects.get(id=payload.get('id'))
+        user = User.objects.get(id=payload.get('id'))
         to_user_id = request.data.get('to_id')
 
         try:
@@ -101,21 +102,21 @@ class SendFriendRequestView(APIView):
         except User.DoesNotExist:
             return Response({'detail': 'User does not exist.'}, status=status.HTTP_404_NOT_FOUND)
 
-        if from_user == to_user:
+        if user == to_user:
             return Response({'detail': 'You cannot send a friend request to yourself.'},
                             status=status.HTTP_400_BAD_REQUEST)
 
-        if from_user.friends.filter(id=to_user_id).exists():
+        if user.friends.filter(id=to_user_id).exists():
             return Response({'detail': 'This user is already your friend.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        if FriendRequest.objects.filter(from_user=from_user, to_user=to_user).exists():
+        if FriendRequest.objects.filter(from_user=user, to_user=to_user).exists():
             return Response({'detail': 'Friend request already sent.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        if FriendRequest.objects.filter(from_user=to_user, to_user=from_user, status='pending').exists():
+        if FriendRequest.objects.filter(from_user=to_user, to_user=user, status='pending').exists():
             return Response({'detail': 'You have a pending request from this user.'},
                             status=status.HTTP_400_BAD_REQUEST)
 
-        FriendRequest.objects.create(from_user=from_user, to_user=to_user)
+        FriendRequest.objects.create(from_user=user, to_user=to_user)
         return Response({'detail': 'Friend request sent.'}, status=status.HTTP_201_CREATED)
 
 
@@ -126,18 +127,18 @@ class AcceptFriendRequestView(APIView):
             raise AuthenticationFailed('Unauthenticated')
         secret = os.environ.get('SECRET_KEY')
         payload = jwt.decode(token, secret, algorithms='HS256')
-        user_id = User.objects.get(id=payload.get('id'))
+        user = User.objects.get(id=payload.get('id'))
 
         friend_request_user_id = request.data.get('from_id')
         try:
-            friend_request = FriendRequest.objects.get(from_user_id=friend_request_user_id, to_user_id=user_id)
+            friend_request = FriendRequest.objects.get(from_user_id=friend_request_user_id, to_user_id=user)
         except FriendRequest.DoesNotExist:
             return Response({'detail': 'Friend request does not exist.'}, status=status.HTTP_404_NOT_FOUND)
 
-        if friend_request.to_user != user_id:
+        if friend_request.to_user != user:
             return Response({'detail': 'You cannot accept this friend request.'}, status=status.HTTP_403_FORBIDDEN)
 
-        if FriendRequest.objects.filter(from_user_id=friend_request_user_id, to_user_id=user_id,
+        if FriendRequest.objects.filter(from_user_id=friend_request_user_id, to_user_id=user,
                                         status='accepted').exists():
             return Response({'detail': 'You already accepted this friend request.'}, status=status.HTTP_403_FORBIDDEN)
 
@@ -177,8 +178,8 @@ class DeleteFriendView(APIView):
         secret = os.environ.get('SECRET_KEY')
         payload = jwt.decode(token, secret, algorithms='HS256')
         user = User.objects.get(id=payload.get('id'))
-        friend_id = request.data.get('to_id')
 
+        friend_id = request.data.get('to_id')
         try:
             friend = User.objects.get(id=friend_id)
         except User.DoesNotExist:
@@ -202,3 +203,24 @@ class DeleteFriendView(APIView):
             return Response({'detail': 'Friend removed.'}, status=status.HTTP_200_OK)
 
         return Response({'detail': 'User is not in your friends.'}, status=status.HTTP_400_BAD_REQUEST)
+
+class ListFriendsView(APIView):
+    def post(self, request):
+        token = request.COOKIES.get('jwt')
+        if not token:
+            raise AuthenticationFailed('Unauthenticated')
+        secret = os.environ.get('SECRET_KEY')
+        payload = jwt.decode(token, secret, algorithms='HS256')
+        user = User.objects.get(id=payload.get('id'))
+
+        friends = user.friends.all()
+        friends_data = []
+        if friends:
+            for friend in friends:
+                friends_data.append({
+                    'username': friend.username,
+                    'status': friend.status,
+                })
+            return Response(friends_data, status=status.HTTP_200_OK)
+        else:
+            return Response({'detail': 'No friends yet.'}, status=status.HTTP_200_OK)
