@@ -13,6 +13,22 @@ import logging  # for debug
 # Create your views here.
 
 
+def authenticate_user(request):
+    token = request.COOKIES.get('jwt')
+    if not token:
+        raise AuthenticationFailed('Unauthenticated')
+
+    secret = os.environ.get('SECRET_KEY')
+    payload = jwt.decode(token, secret, algorithms=['HS256'])
+    user_id = payload.get('id')
+
+    try:
+        user = User.objects.get(id=user_id)
+    except User.DoesNotExist:
+        raise AuthenticationFailed('User not found')
+
+    return user
+
 class RegisterView(APIView):
     serializer_class = RegisterSerializer
     def post(self, request):
@@ -48,12 +64,7 @@ class LoginView(APIView):
 
 class LogoutView(APIView):
     def post(self, request):
-        token = request.COOKIES.get('jwt')
-        if not token:
-            raise AuthenticationFailed('Unauthenticated')
-        secret = os.environ.get('SECRET_KEY')
-        payload = jwt.decode(token, secret, algorithms='HS256')
-        user = User.objects.get(id=payload['id'])
+        user = authenticate_user(request)
 
         user.status = 'offline'
         user.save()
@@ -65,12 +76,7 @@ class LogoutView(APIView):
 
 class UpdateUserView(APIView):
     def put(self, request):
-        token = request.COOKIES.get('jwt')
-        if not token:
-            raise AuthenticationFailed('Unauthenticated')
-        secret = os.environ.get('SECRET_KEY')
-        payload = jwt.decode(token, secret, algorithms='HS256')
-        user = User.objects.get(id=payload['id'])
+        user = authenticate_user(request)
 
         serializer = UserSerializer(user, data=request.data, partial=True)
         if serializer.is_valid(raise_exception=True):
@@ -88,13 +94,7 @@ class UpdateUserView(APIView):
 
 class SendFriendRequestView(APIView):
     def post(self, request):
-        token = request.COOKIES.get('jwt')
-        if not token:
-            raise AuthenticationFailed('Unauthenticated')
-        secret = os.environ.get('SECRET_KEY')
-        payload = jwt.decode(token, secret, algorithms='HS256')
-
-        user = User.objects.get(id=payload.get('id'))
+        user = authenticate_user(request)
         to_user_id = request.data.get('to_id')
 
         try:
@@ -122,13 +122,7 @@ class SendFriendRequestView(APIView):
 
 class AcceptFriendRequestView(APIView):
     def post(self, request):
-        token = request.COOKIES.get('jwt')
-        if not token:
-            raise AuthenticationFailed('Unauthenticated')
-        secret = os.environ.get('SECRET_KEY')
-        payload = jwt.decode(token, secret, algorithms='HS256')
-        user = User.objects.get(id=payload.get('id'))
-
+        user = authenticate_user(request)
         friend_request_user_id = request.data.get('from_id')
         try:
             friend_request = FriendRequest.objects.get(from_user_id=friend_request_user_id, to_user_id=user)
@@ -172,13 +166,7 @@ class AcceptFriendRequestView(APIView):
 
 class DeleteFriendView(APIView):
     def post(self, request):
-        token = request.COOKIES.get('jwt')
-        if not token:
-            raise AuthenticationFailed('Unauthenticated')
-        secret = os.environ.get('SECRET_KEY')
-        payload = jwt.decode(token, secret, algorithms='HS256')
-        user = User.objects.get(id=payload.get('id'))
-
+        user = authenticate_user(request)
         friend_id = request.data.get('to_id')
         try:
             friend = User.objects.get(id=friend_id)
@@ -206,13 +194,7 @@ class DeleteFriendView(APIView):
 
 class ListFriendsView(APIView):
     def post(self, request):
-        token = request.COOKIES.get('jwt')
-        if not token:
-            raise AuthenticationFailed('Unauthenticated')
-        secret = os.environ.get('SECRET_KEY')
-        payload = jwt.decode(token, secret, algorithms='HS256')
-        user = User.objects.get(id=payload.get('id'))
-
+        user = authenticate_user(request)
         friends = user.friends.all()
         friends_data = []
         if friends:
