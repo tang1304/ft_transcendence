@@ -8,6 +8,7 @@ from django.shortcuts import render
 from .serializer import RegisterSerializer, LoginSerializer, UserSerializer#, PasswordResetSerializer
 from .models import User, FriendRequest
 import os
+import pyotp
 import logging  # for debug
 
 # Create your views here.
@@ -82,7 +83,7 @@ class UpdateUserView(APIView):
         if serializer.is_valid(raise_exception=True):
             serializer.save()
             return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response(serializer.errors, status=status.HTTP_403_FORBIDDEN)
 
 
 # class PasswordResetView(APIView):
@@ -91,6 +92,21 @@ class UpdateUserView(APIView):
 #         serializer = self.serializer_class(data=request.data, context={'request': request})
 #         serializer.is_valid(raise_exception=True)
 
+
+class Enable2FAView(APIView):
+    def post(self, request):
+        user = authenticate_user(request)
+
+        if user.tfa_activated is True:
+            return Response({"detail": "2FA already activated"}, status=status.HTTP_400_BAD_REQUEST)
+        secret_key = pyotp.random_base32()
+        user.totp = secret_key
+        user.tfa_activated = True
+        user.save()
+
+        qr_url = pyotp.totp.TOTP(secret_key).provisioning_uri(user.username)
+        response = Response({"qr_url": qr_url}, status=status.HTTP_200_OK)
+        return response
 
 class SendFriendRequestView(APIView):
     def post(self, request):

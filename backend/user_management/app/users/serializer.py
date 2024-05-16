@@ -7,6 +7,7 @@ from django.utils.encoding import smart_str, force_str, smart_bytes
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework_simplejwt.tokens import RefreshToken, TokenError
 import jwt
+import pyotp
 import os
 from datetime import datetime, timedelta, timezone
 
@@ -32,7 +33,7 @@ class RegisterSerializer(serializers.ModelSerializer):
             first_name=validated_data.get('first_name'),
             last_name=validated_data.get('last_name'),
             username=validated_data.get('username'),
-            password=validated_data.get('password')
+            password=validated_data.get('password'),
         )
         return user
 
@@ -40,10 +41,11 @@ class RegisterSerializer(serializers.ModelSerializer):
 class LoginSerializer(serializers.ModelSerializer):
     username = serializers.CharField(max_length=100)
     password = serializers.CharField(max_length=50, write_only=True)
+    otp = serializers.CharField(max_length=6, write_only=True, required=False)
 
     class Meta:
         model = User
-        fields = ['username', 'password']
+        fields = ['username', 'password', 'otp']
         extra_kwargs = {
             'password': {'write_only': True}
         }
@@ -51,11 +53,19 @@ class LoginSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         username = attrs.get('username')
         password = attrs.get('password')
+        otp = attrs.get('otp')
         request = self.context.get('request')
 
         user = authenticate(request, username=username, password=password)
         if not user:
             raise AuthenticationFailed("Invalid, please try again")
+
+        if user.tfa_activated:
+            if not otp:
+                raise AuthenticationFailed("OTP required for your account")
+            totp = pyotp.TOTP(user.otp_secret)
+            if not totp.verify(otp):
+                raise AuthenticationFailed("Invalid OTP")
 
         payload = {
             'id': user.id,
