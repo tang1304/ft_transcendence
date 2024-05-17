@@ -108,6 +108,20 @@ class Enable2FAView(APIView):
         response = Response({"qr_url": qr_url}, status=status.HTTP_200_OK)
         return response
 
+
+class Disable2FAView(APIView):
+    def post(self, request):
+        user = authenticate_user(request)
+
+        if user.tfa_activated is False:
+            return Response({"detail": "2FA already deactivated"}, status=status.HTTP_400_BAD_REQUEST)
+        user.totp = None
+        user.tfa_activated = False
+        user.save()
+        return Response({"detail": "2FA disabled"}, status=status.HTTP_200_OK)
+
+
+
 class SendFriendRequestView(APIView):
     def post(self, request):
         user = authenticate_user(request)
