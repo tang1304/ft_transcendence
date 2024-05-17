@@ -41,11 +41,10 @@ class RegisterSerializer(serializers.ModelSerializer):
 class LoginSerializer(serializers.ModelSerializer):
     username = serializers.CharField(max_length=100)
     password = serializers.CharField(max_length=50, write_only=True)
-    otp = serializers.CharField(max_length=6, write_only=True, required=False)
 
     class Meta:
         model = User
-        fields = ['username', 'password', 'otp']
+        fields = ['username', 'password']
         extra_kwargs = {
             'password': {'write_only': True}
         }
@@ -53,7 +52,6 @@ class LoginSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         username = attrs.get('username')
         password = attrs.get('password')
-        otp = attrs.get('otp')
         request = self.context.get('request')
 
         user = authenticate(request, username=username, password=password)
@@ -61,11 +59,7 @@ class LoginSerializer(serializers.ModelSerializer):
             raise AuthenticationFailed("Invalid, please try again")
 
         if user.tfa_activated:
-            if not otp:
-                raise AuthenticationFailed("OTP required for your account")
-            totp = pyotp.TOTP(user.totp)
-            if not totp.verify(otp):
-                raise AuthenticationFailed("Invalid OTP")
+            return {'user': user}
 
         payload = {
             'id': user.id,
@@ -88,6 +82,43 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = ['username', 'first_name', 'last_name', 'image']
 
+
+class VerifyOTPSerializer(serializers.ModelSerializer):
+    user_id = serializers.IntegerField()
+    otp = serializers.CharField(max_length=6, write_only=True)
+
+    class Meta:
+        model = User
+        fields = ['user_id', 'otp']
+
+    def validate(self, attrs):
+        user_id = attrs.get('user_id')
+        otp = attrs.get('otp')
+
+        try:
+            user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            raise AuthenticationFailed("User not found")
+
+        if not user.tfa_activated:
+            raise AuthenticationFailed("2FA not enabled for this user")
+
+        totp = pyotp.TOTP(user.totp)
+        if not totp.verify(otp):
+            raise AuthenticationFailed("Invalid OTP")
+
+        payload = {
+            'id': user.id,
+            'exp': datetime.now(timezone.utc) + timedelta(hours=1),  # time before expiration
+            'iat': datetime.now(timezone.utc),  # Issued AT
+        }
+        secret = os.environ.get('SECRET_KEY')
+        token = jwt.encode(payload, secret, algorithm='HS256')
+
+        return {
+            'user': user,
+            'token': token
+        }
 
 # class PasswordResetSerializer(serializers.Serializer):
 #     email = serializers.EmailField(max_length=100)

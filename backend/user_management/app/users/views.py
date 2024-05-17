@@ -5,7 +5,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework import status
 from django.shortcuts import render
-from .serializer import RegisterSerializer, LoginSerializer, UserSerializer#, PasswordResetSerializer
+from .serializer import RegisterSerializer, LoginSerializer, UserSerializer, VerifyOTPSerializer#, PasswordResetSerializer
 from .models import User, FriendRequest
 import os
 import pyotp
@@ -52,9 +52,16 @@ class LoginView(APIView):
     def post (self, request):
         serializer = self.serializer_class(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
-        token = serializer.validated_data['token']
         user = serializer.validated_data['user']
 
+        if user.tfa_activated:
+            return Response({
+                'detail': 'OTP required for your account',
+                'otp_required': True,
+                'user_id': user.id
+            })
+
+        token = serializer.validated_data['token']
         user.status = 'online'
         user.save()
 
@@ -109,6 +116,21 @@ class Enable2FAView(APIView):
         return response
 
 
+class VerifyOTPView(APIView):
+    def post(self, request):
+        serializer = VerifyOTPSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        token = serializer.validated_data['token']
+        user = serializer.validated_data['user']
+
+        user.status = 'online'
+        user.save()
+
+        response = Response({"token": token})
+        response.set_cookie(key='jwt', value=token, httponly=True)
+        return response
+
+
 class Disable2FAView(APIView):
     def post(self, request):
         user = authenticate_user(request)
@@ -119,7 +141,6 @@ class Disable2FAView(APIView):
         user.tfa_activated = False
         user.save()
         return Response({"detail": "2FA disabled"}, status=status.HTTP_200_OK)
-
 
 
 class SendFriendRequestView(APIView):
