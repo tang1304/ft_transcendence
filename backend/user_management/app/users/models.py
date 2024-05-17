@@ -10,7 +10,7 @@ from PIL import Image
 class User(AbstractUser):
     username = models.CharField(unique=True, max_length=100)
     email = models.EmailField(unique=True, max_length=100)
-    password = models.CharField(max_length=100, validators=[MinLengthValidator(5)])
+    password = models.CharField(max_length=50, validators=[MinLengthValidator(8)])
     image = models.ImageField(default='default_pp.jpg', upload_to='profile_pics')
     friends = models.ManyToManyField("self", blank=True)
     status_choices = [
