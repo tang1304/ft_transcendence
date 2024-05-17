@@ -4,13 +4,14 @@ from django.core.validators import MinLengthValidator
 from rest_framework_simplejwt.tokens import RefreshToken
 from .manager import UserManager
 from PIL import Image
+from .fields import EncryptedField
 
 # Create your models here.
 
 class User(AbstractUser):
     username = models.CharField(unique=True, max_length=100)
     email = models.EmailField(unique=True, max_length=100)
-    password = models.CharField(max_length=50, validators=[MinLengthValidator(8)])
+    password = models.CharField(max_length=100, validators=[MinLengthValidator(8)])
     image = models.ImageField(default='default_pp.jpg', upload_to='profile_pics')
     friends = models.ManyToManyField("self", blank=True)
     status_choices = [
@@ -18,7 +19,7 @@ class User(AbstractUser):
         ('offline', 'Offline'),
     ]
     status = models.CharField(max_length=50, choices=status_choices, default='offline')
-    totp = models.CharField(max_length=100, blank=True, null=True)
+    totp = EncryptedField(max_length=255, blank=True, null=True)
     tfa_activated = models.BooleanField(default=False)
 
     def save(self, *args, **kwargs):

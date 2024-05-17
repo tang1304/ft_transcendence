@@ -13,8 +13,8 @@ from datetime import datetime, timedelta, timezone
 
 
 class RegisterSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(max_length=50, min_length=8, write_only=True)
-    password2 = serializers.CharField(max_length=50, min_length=8, write_only=True)
+    password = serializers.CharField(max_length=100, min_length=8, write_only=True)
+    password2 = serializers.CharField(max_length=100, min_length=8, write_only=True)
 
     class Meta:
         model = User
