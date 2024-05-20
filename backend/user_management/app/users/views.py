@@ -6,7 +6,8 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework import status
-from .serializer import RegisterSerializer, LoginSerializer, UserSerializer, VerifyOTPSerializer#, PasswordResetSerializer
+from .serializer import (RegisterSerializer, LoginSerializer, UserSerializer, VerifyOTPSerializer,
+                         PasswordResetSerializer)
 from .models import User, FriendRequest
 import os
 import pyotp
@@ -31,27 +32,23 @@ def authenticate_user(request):
 
 @method_decorator(csrf_protect, name='dispatch')
 class RegisterView(APIView):
-    serializer_class = RegisterSerializer
     def post(self, request):
         user_data = request.data
-        serializer = self.serializer_class(data=user_data)
+        serializer = RegisterSerializer(data=user_data)
         if serializer.is_valid(raise_exception=True):
             serializer.save()
             user = serializer.data
-            #2fa
             return Response({
                 'data': user,
-                'message': f'Signing up done, check your emails to verify your account'
+                'message': f'Signing up done'
             }, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 @method_decorator(csrf_protect, name='dispatch')
 class LoginView(APIView):
-    serializer_class = LoginSerializer
-
     def post (self, request):
-        serializer = self.serializer_class(data=request.data, context={'request': request})
+        serializer = LoginSerializer(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
         user = serializer.validated_data['user']
 
@@ -97,12 +94,15 @@ class UpdateUserView(APIView):
         return Response(serializer.errors, status=status.HTTP_403_FORBIDDEN)
 
 
-# class PasswordResetView(APIView):
-#     serializer_class = PasswordResetSerializer
-#     def post(self, request):
-#         serializer = self.serializer_class(data=request.data, context={'request': request})
-#         serializer.is_valid(raise_exception=True)
-
+@method_decorator(csrf_protect, name='dispatch')
+class PasswordResetView(APIView):
+    def post(self, request):
+        user = authenticate_user(request)
+        serializer = PasswordResetSerializer(user, data=request.data)
+        if serializer.is_valid(raise_exception=True):
+            serializer.save()
+            return Response({"detail": "Password changed successfully"}, serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 @method_decorator(csrf_protect, name='dispatch')
 class Enable2FAView(APIView):

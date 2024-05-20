@@ -1,11 +1,7 @@
 from .models import User
 from rest_framework import serializers
 from django.contrib.auth import authenticate
-from django.contrib.auth.tokens import PasswordResetTokenGenerator
-from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
-from django.utils.encoding import smart_str, force_str, smart_bytes
 from rest_framework.exceptions import AuthenticationFailed
-from rest_framework_simplejwt.tokens import RefreshToken, TokenError
 import jwt
 import pyotp
 import os
@@ -83,6 +79,28 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ['username', 'first_name', 'last_name', 'image']
 
 
+class PasswordResetSerializer(serializers.Serializer):
+    new_password = serializers.CharField(max_length=100, min_length=8, write_only=True)
+    confirm_password = serializers.CharField(max_length=100, min_length=8, write_only=True)
+    class Meta:
+        model = User
+        fields = ['old_password', 'new_password', 'confirm_new']
+
+    def validate(self, attrs):
+        user_id = attrs.get('user_id')
+        try:
+            user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            raise AuthenticationFailed("User not found")
+        old_password = attrs.get('old_password')
+        if old_password != user.password:
+            raise AuthenticationFailed("Incorrect password")
+        new_password = attrs.get('new_password')
+        confirm_password = attrs.get('confirm_new')
+        if new_password != confirm_password:
+            raise AuthenticationFailed("Incorrect new password match")
+
+
 class VerifyOTPSerializer(serializers.ModelSerializer):
     user_id = serializers.IntegerField()
     otp = serializers.CharField(max_length=6, write_only=True)
@@ -119,14 +137,3 @@ class VerifyOTPSerializer(serializers.ModelSerializer):
             'user': user,
             'token': token
         }
-
-# class PasswordResetSerializer(serializers.Serializer):
-#     email = serializers.EmailField(max_length=100)
-#     class Meta:
-#         model = User
-#         fields = ['email']
-#
-#     def validate(self, attrs):
-#         email = attrs.get('email')
-#         if User.objects.filter(email=email).exists():
-#             user = User.objects.get(email=email)
