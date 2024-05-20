@@ -6,7 +6,8 @@ import jwt
 import pyotp
 import os
 from datetime import datetime, timedelta, timezone
-
+from django.contrib.auth.hashers import check_password
+from django.contrib.auth.password_validation import validate_password
 
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(max_length=100, min_length=8, write_only=True)
@@ -80,25 +81,33 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class PasswordResetSerializer(serializers.Serializer):
+    old_password = serializers.CharField(max_length=100, min_length=8, write_only=True)
     new_password = serializers.CharField(max_length=100, min_length=8, write_only=True)
     confirm_password = serializers.CharField(max_length=100, min_length=8, write_only=True)
-    class Meta:
-        model = User
-        fields = ['old_password', 'new_password', 'confirm_new']
+
+    # class Meta:
+    #     model = User
+    #     fields = ['old_password', 'new_password', 'confirm_new']
 
     def validate(self, attrs):
-        user_id = attrs.get('user_id')
-        try:
-            user = User.objects.get(id=user_id)
-        except User.DoesNotExist:
-            raise AuthenticationFailed("User not found")
+        user = self.context['user']
         old_password = attrs.get('old_password')
-        if old_password != user.password:
-            raise AuthenticationFailed("Incorrect password")
         new_password = attrs.get('new_password')
-        confirm_password = attrs.get('confirm_new')
+        confirm_password = attrs.get('confirm_password')
+
+        if not user.check_password(old_password):
+            raise serializers.ValidationError("Old password is incorrect")
         if new_password != confirm_password:
-            raise AuthenticationFailed("Incorrect new password match")
+            raise serializers.ValidationError("New passwords do not match")
+
+        validate_password(new_password, user)
+        return attrs
+
+    def save(self, **kwargs):
+        user = self.context['user']
+        new_password = self.validated_data['new_password']
+        user.set_password(new_password)
+        user.save()
 
 
 class VerifyOTPSerializer(serializers.ModelSerializer):

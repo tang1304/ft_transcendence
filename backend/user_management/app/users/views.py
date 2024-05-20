@@ -6,8 +6,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework import status
-from .serializer import (RegisterSerializer, LoginSerializer, UserSerializer, VerifyOTPSerializer,
-                         PasswordResetSerializer)
+from .serializer import (RegisterSerializer, LoginSerializer, UserSerializer, VerifyOTPSerializer, PasswordResetSerializer)
 from .models import User, FriendRequest
 import os
 import pyotp
@@ -32,9 +31,10 @@ def authenticate_user(request):
 
 @method_decorator(csrf_protect, name='dispatch')
 class RegisterView(APIView):
+    serializer_class = RegisterSerializer
     def post(self, request):
         user_data = request.data
-        serializer = RegisterSerializer(data=user_data)
+        serializer = self.serializer_class(data=user_data)
         if serializer.is_valid(raise_exception=True):
             serializer.save()
             user = serializer.data
@@ -47,8 +47,9 @@ class RegisterView(APIView):
 
 @method_decorator(csrf_protect, name='dispatch')
 class LoginView(APIView):
+    serializer_class = LoginSerializer
     def post (self, request):
-        serializer = LoginSerializer(data=request.data, context={'request': request})
+        serializer = self.serializer_class(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
         user = serializer.validated_data['user']
 
@@ -84,10 +85,11 @@ class LogoutView(APIView):
 
 @method_decorator(csrf_protect, name='dispatch')
 class UpdateUserView(APIView):
+    serializer_class = UserSerializer
     def put(self, request):
         user = authenticate_user(request)
 
-        serializer = UserSerializer(user, data=request.data, partial=True)
+        serializer = self.serializer_class(user, data=request.data, partial=True)
         if serializer.is_valid(raise_exception=True):
             serializer.save()
             return Response(serializer.data)
@@ -96,12 +98,13 @@ class UpdateUserView(APIView):
 
 @method_decorator(csrf_protect, name='dispatch')
 class PasswordResetView(APIView):
+    serializer_class = PasswordResetSerializer
     def post(self, request):
         user = authenticate_user(request)
-        serializer = PasswordResetSerializer(user, data=request.data)
+        serializer = self.serializer_class(data=request.data, context={'user': user})
         if serializer.is_valid(raise_exception=True):
             serializer.save()
-            return Response({"detail": "Password changed successfully"}, serializer.data)
+            return Response({"detail": "Password changed successfully"})
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 @method_decorator(csrf_protect, name='dispatch')
