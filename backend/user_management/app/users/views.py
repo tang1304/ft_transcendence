@@ -1,17 +1,16 @@
 import jwt
+from django.middleware.csrf import get_token
+from django.views.decorators.csrf import csrf_protect
+from django.utils.decorators import method_decorator
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework import status
-from django.shortcuts import render
 from .serializer import RegisterSerializer, LoginSerializer, UserSerializer, VerifyOTPSerializer#, PasswordResetSerializer
 from .models import User, FriendRequest
 import os
 import pyotp
 import logging  # for debug
-
-# Create your views here.
 
 
 def authenticate_user(request):
@@ -30,6 +29,7 @@ def authenticate_user(request):
 
     return user
 
+@method_decorator(csrf_protect, name='dispatch')
 class RegisterView(APIView):
     serializer_class = RegisterSerializer
     def post(self, request):
@@ -46,6 +46,7 @@ class RegisterView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+@method_decorator(csrf_protect, name='dispatch')
 class LoginView(APIView):
     serializer_class = LoginSerializer
 
@@ -67,9 +68,11 @@ class LoginView(APIView):
 
         response = Response({"token": token})
         response.set_cookie(key='jwt', value=token, httponly=True)
+        response.set_cookie(key='csrftoken', value=get_token(request), samesite='Lax', secure=True)
         return response
 
 
+@method_decorator(csrf_protect, name='dispatch')
 class LogoutView(APIView):
     def post(self, request):
         user = authenticate_user(request)
@@ -82,6 +85,7 @@ class LogoutView(APIView):
         return response
 
 
+@method_decorator(csrf_protect, name='dispatch')
 class UpdateUserView(APIView):
     def put(self, request):
         user = authenticate_user(request)
@@ -100,6 +104,7 @@ class UpdateUserView(APIView):
 #         serializer.is_valid(raise_exception=True)
 
 
+@method_decorator(csrf_protect, name='dispatch')
 class Enable2FAView(APIView):
     def post(self, request):
         user = authenticate_user(request)
@@ -116,6 +121,7 @@ class Enable2FAView(APIView):
         return response
 
 
+@method_decorator(csrf_protect, name='dispatch')
 class VerifyOTPView(APIView):
     def post(self, request):
         serializer = VerifyOTPSerializer(data=request.data)
@@ -131,6 +137,7 @@ class VerifyOTPView(APIView):
         return response
 
 
+@method_decorator(csrf_protect, name='dispatch')
 class Disable2FAView(APIView):
     def post(self, request):
         user = authenticate_user(request)
@@ -143,6 +150,7 @@ class Disable2FAView(APIView):
         return Response({"detail": "2FA disabled"}, status=status.HTTP_200_OK)
 
 
+@method_decorator(csrf_protect, name='dispatch')
 class SendFriendRequestView(APIView):
     def post(self, request):
         user = authenticate_user(request)
@@ -171,6 +179,7 @@ class SendFriendRequestView(APIView):
         return Response({'detail': 'Friend request sent.'}, status=status.HTTP_201_CREATED)
 
 
+@method_decorator(csrf_protect, name='dispatch')
 class AcceptFriendRequestView(APIView):
     def post(self, request):
         user = authenticate_user(request)
@@ -215,6 +224,7 @@ class AcceptFriendRequestView(APIView):
 #         return Response({'detail': 'Friend request declined.'}, status=status.HTTP_200_OK)
 
 
+@method_decorator(csrf_protect, name='dispatch')
 class DeleteFriendView(APIView):
     def post(self, request):
         user = authenticate_user(request)
@@ -243,6 +253,8 @@ class DeleteFriendView(APIView):
 
         return Response({'detail': 'User is not in your friends.'}, status=status.HTTP_400_BAD_REQUEST)
 
+
+@method_decorator(csrf_protect, name='dispatch')
 class ListFriendsView(APIView):
     def post(self, request):
         user = authenticate_user(request)
