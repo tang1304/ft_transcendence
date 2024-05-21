@@ -1,6 +1,12 @@
 from .models import User
+from .utils import send_email
 from rest_framework import serializers
 from django.contrib.auth import authenticate
+from django.contrib.auth.tokens import PasswordResetTokenGenerator
+from django.contrib.sites.shortcuts import get_current_site
+from django.utils.encoding import smart_str, force_str, smart_bytes
+from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
+from django.urls import reverse
 from rest_framework.exceptions import AuthenticationFailed
 import jwt
 import pyotp
@@ -80,14 +86,10 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ['username', 'first_name', 'last_name', 'image']
 
 
-class PasswordResetSerializer(serializers.Serializer):
+class PasswordChangeSerializer(serializers.Serializer):
     old_password = serializers.CharField(max_length=100, min_length=8, write_only=True)
     new_password = serializers.CharField(max_length=100, min_length=8, write_only=True)
     confirm_password = serializers.CharField(max_length=100, min_length=8, write_only=True)
-
-    # class Meta:
-    #     model = User
-    #     fields = ['old_password', 'new_password', 'confirm_new']
 
     def validate(self, attrs):
         user = self.context['user']
@@ -108,6 +110,36 @@ class PasswordResetSerializer(serializers.Serializer):
         new_password = self.validated_data['new_password']
         user.set_password(new_password)
         user.save()
+
+
+class PasswordResetRequestSerializer(serializers.Serializer):
+    email = serializers.EmailField(max_length=100)
+
+    class Meta:
+        model = User
+        fields = ['email']
+
+    def validate(self, attrs):
+        email = attrs.get('email')
+        if User.objects.filter(email=email).exists():
+            user = User.objects.get(email=attrs.get('email'))
+            uidb64 = urlsafe_base64_encode(smart_bytes(user.id))
+            token = PasswordResetTokenGenerator().make_token(user)
+            request = self.context.get('request')
+            relative_link = reverse('reset-confirmed', kwargs={'uidb64': uidb64, 'token': token})
+            current_site = get_current_site(request).domain
+            abslink = f"http://{current_site}{relative_link}"
+            content = f"Hello {user.username}, use this link to reset your password: {abslink}"
+            data = {
+                'email_body': content,
+                'to_email': user.email,
+                'email_subject': 'Password reset request',
+            }
+            send_email(data)
+        else:
+            raise serializers.ValidationError("No user with that email exists")
+
+        return super().validate(attrs)
 
 
 class VerifyOTPSerializer(serializers.ModelSerializer):

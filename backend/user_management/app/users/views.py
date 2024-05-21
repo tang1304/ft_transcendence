@@ -1,14 +1,18 @@
-import jwt
 from django.middleware.csrf import get_token
 from django.views.decorators.csrf import csrf_protect
 from django.utils.decorators import method_decorator
+from django.utils.encoding import smart_str, DjangoUnicodeDecodeError
+from django.utils.http import urlsafe_base64_decode
+from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework import status
-from .serializer import (RegisterSerializer, LoginSerializer, UserSerializer, VerifyOTPSerializer, PasswordResetSerializer)
+from .serializer import (RegisterSerializer, LoginSerializer, UserSerializer, VerifyOTPSerializer,
+                         PasswordChangeSerializer, PasswordResetRequestSerializer)
 from .models import User, FriendRequest
 import os
+import jwt
 import pyotp
 import logging  # for debug
 
@@ -28,6 +32,7 @@ def authenticate_user(request):
         raise AuthenticationFailed('User not found')
 
     return user
+
 
 @method_decorator(csrf_protect, name='dispatch')
 class RegisterView(APIView):
@@ -97,8 +102,8 @@ class UpdateUserView(APIView):
 
 
 @method_decorator(csrf_protect, name='dispatch')
-class PasswordResetView(APIView):
-    serializer_class = PasswordResetSerializer
+class PasswordChangeView(APIView):
+    serializer_class = PasswordChangeSerializer
     def post(self, request):
         user = authenticate_user(request)
         serializer = self.serializer_class(data=request.data, context={'user': user})
@@ -106,6 +111,33 @@ class PasswordResetView(APIView):
             serializer.save()
             return Response({"detail": "Password changed successfully"})
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@method_decorator(csrf_protect, name='dispatch')
+class PasswordResetRequestView(APIView):
+    serializer_class = PasswordResetRequestSerializer
+
+    def post(self, request):
+        user = authenticate_user(request)
+        serializer = self.serializer_class(data=request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        return Response({
+            'detail': 'You have received a mail with a link to reset your password'},
+            status=status.HTTP_200_OK)
+
+
+class PasswordResetConfirmedView(APIView):
+    def get(self, request, uidb64, token):
+        try:
+            user_id = smart_str(urlsafe_base64_decode(uidb64))
+            user = User.objects.get(id=user_id)
+
+            if not PasswordResetTokenGenerator().check_token(user, token):
+                return Response({'detail': 'Invalid token'}, status=status.HTTP_401_UNAUTHORIZED)
+            return Response({'detail': 'You have reset your password successfully.'}, status.HTTP_200_OK)
+
+        except DjangoUnicodeDecodeError as identifier:
+            return Response({'detail': 'Token invalid or expired.'}, status=status.HTTP_401_UNAUTHORIZED)
+
 
 @method_decorator(csrf_protect, name='dispatch')
 class Enable2FAView(APIView):

@@ -143,6 +143,20 @@ SIMPLE_JWT = {
     'AUTH_COOKIE_SAMESITE': 'Lax',
 }
 
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = '587'
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = os.environ.get('EMAIL_SENDER')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_SENDER_PASS')
+
+# test to receive in mailtrap
+# EMAIL_HOST = 'sandbox.smtp.mailtrap.io'
+# EMAIL_PORT = 465
+# EMAIL_USE_TLS = True
+# EMAIL_HOST_USER = 'c2cb88b17709da'
+# EMAIL_HOST_PASSWORD = 'f0f1547ad0d41a'
+
 # To debug
 LOGGING = {
     'version': 1,
