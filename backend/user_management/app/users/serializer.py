@@ -28,9 +28,23 @@ class RegisterSerializer(serializers.ModelSerializer):
         password2 = attrs.get('password2', '')
         if password != password2:
             raise serializers.ValidationError("passwords don't match")
+
+        user = User(
+            email=attrs.get('email'),
+            username=attrs.get('username'),
+            first_name=attrs.get('first_name'),
+            last_name=attrs.get('last_name'),
+        )
+
+        try:
+            validate_password(password, user)
+        except serializers.ValidationError as e:
+            raise serializers.ValidationError({'password': list(e.messages)})
+
         return attrs
 
     def create(self, validated_data):
+        validated_data.pop('password2')
         user = User.objects.create_user(
             email=validated_data['email'],
             first_name=validated_data.get('first_name'),
