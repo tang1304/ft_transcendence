@@ -9,7 +9,7 @@ from rest_framework.response import Response
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework import status
 from .serializer import (RegisterSerializer, LoginSerializer, UserSerializer, VerifyOTPSerializer,
-                         PasswordChangeSerializer, PasswordResetRequestSerializer)
+                         PasswordChangeSerializer, PasswordResetRequestSerializer, SetNewPasswordSerializer)
 from .models import User, FriendRequest
 import os
 import jwt
@@ -44,7 +44,6 @@ class RegisterView(APIView):
             serializer.save()
             user = serializer.data
             return Response({
-                'data': user,
                 'message': f'Signing up done'
             }, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -117,11 +116,22 @@ class PasswordResetRequestView(APIView):
     serializer_class = PasswordResetRequestSerializer
 
     def post(self, request):
-        user = authenticate_user(request)
         serializer = self.serializer_class(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
         return Response({
             'detail': 'You have received a mail with a link to reset your password'},
+            status=status.HTTP_200_OK)
+
+
+@method_decorator(csrf_protect, name='dispatch')
+class SetNewPasswordView(APIView):
+    serializer_class = SetNewPasswordSerializer
+
+    def post(self, request):
+        serializer = self.serializer_class(data=request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        return Response({
+            'detail': 'Password has been changed successfully'},
             status=status.HTTP_200_OK)
 
 
@@ -133,7 +143,7 @@ class PasswordResetConfirmedView(APIView):
 
             if not PasswordResetTokenGenerator().check_token(user, token):
                 return Response({'detail': 'Invalid token'}, status=status.HTTP_401_UNAUTHORIZED)
-            return Response({'detail': 'You have reset your password successfully.'}, status.HTTP_200_OK)
+            return Response({'detail': 'Token is valid, proceed to reset password.'}, status.HTTP_200_OK)
 
         except DjangoUnicodeDecodeError as identifier:
             return Response({'detail': 'Token invalid or expired.'}, status=status.HTTP_401_UNAUTHORIZED)

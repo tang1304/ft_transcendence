@@ -1,7 +1,7 @@
 from django.urls import path
 from .views import (RegisterView, LoginView, LogoutView, SendFriendRequestView, AcceptFriendRequestView, UpdateUserView,
                     DeleteFriendView, ListFriendsView, Enable2FAView, Disable2FAView, VerifyOTPView, PasswordChangeView
-                    , PasswordResetRequestView, PasswordResetConfirmedView)#, DeclineFriendRequestView)
+                    , PasswordResetRequestView, PasswordResetConfirmedView, SetNewPasswordView)#, DeclineFriendRequestView)
 
 urlpatterns = [
     path('register', RegisterView.as_view()),
@@ -10,6 +10,7 @@ urlpatterns = [
     path('user', UpdateUserView.as_view()),
     path('change_password', PasswordChangeView.as_view()),
     path('reset_password', PasswordResetRequestView.as_view()),
+    path('change_reset_password', SetNewPasswordView.as_view()),
     path('reset_password_confirmed/<uidb64>/<token>/', PasswordResetConfirmedView.as_view(), name='reset-confirmed'),
     path('send_friend', SendFriendRequestView.as_view()),
     path('accept_friend', AcceptFriendRequestView.as_view()),

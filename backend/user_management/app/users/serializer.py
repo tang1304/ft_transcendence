@@ -4,7 +4,7 @@ from rest_framework import serializers
 from django.contrib.auth import authenticate
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.contrib.sites.shortcuts import get_current_site
-from django.utils.encoding import smart_str, force_str, smart_bytes
+from django.utils.encoding import smart_str, force_str, smart_bytes, DjangoUnicodeDecodeError
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from django.urls import reverse
 from rest_framework.exceptions import AuthenticationFailed
@@ -140,6 +140,32 @@ class PasswordResetRequestSerializer(serializers.Serializer):
             raise serializers.ValidationError("No user with that email exists")
 
         return super().validate(attrs)
+
+
+#TODO: NEEDS TESTS WITH FRONTEND TO CHECK TOKEN AND UIDB64
+class SetNewPasswordSerializer(serializers.Serializer):
+    uidb64 = serializers.CharField(write_only=True, required=True)
+    token = serializers.CharField(write_only=True, required=True)
+    new_password = serializers.CharField(write_only=True, required=True, max_length=100, min_length=8)
+    confirm_password = serializers.CharField(write_only=True, required=True, max_length=100, min_length=8)
+
+    def validate(self, attrs):
+        try:
+            user_id = smart_str(urlsafe_base64_decode(attrs['uidb64']))
+            user = User.objects.get(id=user_id)
+
+            if not PasswordResetTokenGenerator().check_token(user, attrs['token']):
+                raise serializers.ValidationError({'detail': "Invalid or expired token"})
+
+            new_password = attrs.get('new_password')
+            confirm_password = attrs.get('confirm_password')
+            if new_password != confirm_password:
+                raise serializers.ValidationError("New passwords do not match")
+            user.set_password(attrs['password'])
+            user.save()
+
+        except DjangoUnicodeDecodeError:
+            raise serializers.ValidationError({'detail': "Invalid token"})
 
 
 class VerifyOTPSerializer(serializers.ModelSerializer):
