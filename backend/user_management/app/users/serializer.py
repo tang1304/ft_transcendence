@@ -21,7 +21,7 @@ class RegisterSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['email', 'first_name', 'last_name', 'username', 'password', 'password2']
+        fields = ['email', 'username', 'first_name', 'last_name', 'password', 'password2']
 
     def validate(self, attrs):
         password = attrs.get('password', '')
@@ -79,11 +79,25 @@ class LoginSerializer(serializers.ModelSerializer):
 
 
 class UserSerializer(serializers.ModelSerializer):
-    image = serializers.ImageField(max_length=255, allow_empty_file=False, use_url=True)
+    image = serializers.ImageField(max_length=255, allow_empty_file=False, use_url=True, required=False)
 
     class Meta:
         model = User
         fields = ['username', 'first_name', 'last_name', 'image']
+        extra_kwargs = {
+            'username': {'required': False},
+            'first_name': {'required': False},
+            'last_name': {'required': False},
+            'image': {'required': False},
+        }
+
+        def update(self, instance, validated_data):
+            instance.username = validated_data.get('username', instance.username)
+            instance.first_name = validated_data.get('first_name', instance.first_name)
+            instance.last_name = validated_data.get('last_name', instance.last_name)
+            instance.image = validated_data.get('image', instance.image)
+
+            instance.save()
 
 
 class PasswordChangeSerializer(serializers.Serializer):

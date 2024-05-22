@@ -30,7 +30,7 @@ class User(AbstractUser):
             img.thumbnail(new_img)
             img.save(self.image.path)
 
-    REQUIRED_FIELDS = ['email']
+    REQUIRED_FIELDS = ['']
 
     objects = UserManager()
 

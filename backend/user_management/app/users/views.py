@@ -8,12 +8,12 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework import status
-from .serializer import (RegisterSerializer, LoginSerializer, UserSerializer, VerifyOTPSerializer,
-                         PasswordChangeSerializer, PasswordResetRequestSerializer, SetNewPasswordSerializer)
-from .models import User, FriendRequest
 import os
 import jwt
 import pyotp
+from .models import User, FriendRequest
+from .serializer import (RegisterSerializer, LoginSerializer, UserSerializer, VerifyOTPSerializer,
+                         PasswordChangeSerializer, PasswordResetRequestSerializer, SetNewPasswordSerializer)
 import logging  # for debug
 
 
@@ -42,7 +42,6 @@ class RegisterView(APIView):
         serializer = self.serializer_class(data=user_data)
         if serializer.is_valid(raise_exception=True):
             serializer.save()
-            user = serializer.data
             return Response({
                 'message': f'Signing up done'
             }, status=status.HTTP_201_CREATED)
@@ -96,7 +95,8 @@ class UpdateUserView(APIView):
         serializer = self.serializer_class(user, data=request.data, partial=True)
         if serializer.is_valid(raise_exception=True):
             serializer.save()
-            return Response(serializer.data)
+            return Response({"detail": "Data changed successfully"},
+                            status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_403_FORBIDDEN)
 
 
@@ -108,7 +108,8 @@ class PasswordChangeView(APIView):
         serializer = self.serializer_class(data=request.data, context={'user': user})
         if serializer.is_valid(raise_exception=True):
             serializer.save()
-            return Response({"detail": "Password changed successfully"})
+            return Response({"detail": "Password changed successfully"},
+                            status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 @method_decorator(csrf_protect, name='dispatch')
