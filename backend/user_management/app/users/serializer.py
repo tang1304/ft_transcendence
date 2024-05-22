@@ -8,6 +8,7 @@ from django.utils.encoding import smart_str, force_str, smart_bytes, DjangoUnico
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from django.urls import reverse
 from rest_framework.exceptions import AuthenticationFailed
+from PIL import Image
 import jwt
 import pyotp
 import os
@@ -105,13 +106,28 @@ class UserSerializer(serializers.ModelSerializer):
             'image': {'required': False},
         }
 
-        def update(self, instance, validated_data):
-            instance.username = validated_data.get('username', instance.username)
-            instance.first_name = validated_data.get('first_name', instance.first_name)
-            instance.last_name = validated_data.get('last_name', instance.last_name)
-            instance.image = validated_data.get('image', instance.image)
+    def validate_image(self, value):
+        # checking extension
+        valid_extension = ['jpg', 'jpeg', 'png']
+        ext = os.path.splitext(value.name)[1][1:].lower()
+        if ext not in valid_extension:
+            raise serializers.ValidationError("Only jpg/jpeg and png files are allowed")
 
-            instance.save()
+        # checking file content, that it matches the format given
+        try:
+            img = Image.open(value)
+            if img.format not in ['JPEG', 'PNG']:
+                raise serializers.ValidationError("Only jpg/jpeg and png images are allowed")
+        except Exception as e:
+            raise serializers.ValidationError("Only jpg/jpeg and png images are allowed")
+
+    def update(self, instance, validated_data):
+        instance.username = validated_data.get('username', instance.username)
+        instance.first_name = validated_data.get('first_name', instance.first_name)
+        instance.last_name = validated_data.get('last_name', instance.last_name)
+        instance.image = validated_data.get('image', instance.image)
+
+        instance.save()
 
 
 class PasswordChangeSerializer(serializers.Serializer):
